@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Patient;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class PatientSeeder extends Seeder
@@ -72,8 +73,22 @@ class PatientSeeder extends Seeder
             ],
         ];
 
-        foreach ($patients as $patient) {
-            Patient::create($patient);
+        foreach ($patients as $patientData) {
+            // Create user for this patient
+            $user = User::create([
+                'name' => $patientData['name'],
+                'email' => $patientData['email'],
+                'password' => 'password', // Default password
+            ]);
+
+            // Create patient linked to user
+            Patient::create([
+                'user_id' => $user->id,
+                'name' => $patientData['name'],
+                'email' => $patientData['email'],
+                'phone' => $patientData['phone'],
+                'date_of_birth' => $patientData['date_of_birth'],
+            ]);
         }
     }
 }

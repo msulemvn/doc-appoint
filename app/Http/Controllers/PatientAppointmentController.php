@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\AppointmentStatus;
 use App\Http\Requests\StoreAppointmentRequest;
+use App\Http\Requests\UpdateAppointmentStatusRequest;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
 use App\Models\Patient;
@@ -15,18 +16,10 @@ class PatientAppointmentController extends Controller
 {
     /**
      * @OA\Get(
-     *     path="/api/patients/{patient}/appointments",
-     *     tags={"Patient Appointments"},
-     *     summary="Get all appointments for a patient",
+     *     path="/api/appointments",
+     *     tags={"Appointments"},
+     *     summary="Get all appointments for authenticated patient",
      *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\Parameter(
-     *         name="patient",
-     *         in="path",
-     *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
      *
      *     @OA\Parameter(
      *         name="status",
@@ -41,29 +34,58 @@ class PatientAppointmentController extends Controller
      *         description="Appointments retrieved successfully",
      *
      *         @OA\JsonContent(
-     *             allOf={
      *
-     *                 @OA\Schema(ref="#/components/schemas/SuccessResponse"),
-     *                 @OA\Schema(
+     *             @OA\Property(property="message", type="string", example="Appointments retrieved successfully"),
+     *             @OA\Property(property="statusCode", type="integer", example=200),
+     *             @OA\Property(property="status", type="string", example="OK"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
      *
+     *                 @OA\Items(
+     *                     type="object",
+     *
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="appointment_date", type="string", format="date-time", example="2025-12-01 10:00:00"),
+     *                     @OA\Property(property="status", type="string", example="pending"),
+     *                     @OA\Property(property="notes", type="string", example="Follow-up consultation"),
      *                     @OA\Property(
-     *                         property="data",
-     *                         type="array",
+     *                         property="doctor",
+     *                         type="object",
      *
-     *                         @OA\Items(ref="#/components/schemas/Appointment")
+     *                         @OA\Property(property="id", type="integer", example=1),
+     *                         @OA\Property(property="name", type="string", example="Dr. John Smith"),
+     *                         @OA\Property(property="specialization", type="string", example="Cardiology"),
+     *                         @OA\Property(property="email", type="string", example="doctor@example.com"),
+     *                         @OA\Property(property="phone", type="string", example="+1234567890")
      *                     )
      *                 )
-     *             }
+     *             )
      *         )
      *     ),
      *
-     *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=404, description="Patient not found")
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Unauthenticated"),
+     *             @OA\Property(property="statusCode", type="integer", example=401),
+     *             @OA\Property(property="status", type="string", example="Unauthorized")
+     *         )
+     *     )
      * )
      */
-    public function index(Patient $patient, Request $request)
+    public function index(Request $request)
     {
-        $query = $patient->appointments();
+        $patient = auth('api')->user()->patient;
+
+        if (!$patient) {
+            return $this->error('Patient profile not found', null, Response::HTTP_NOT_FOUND);
+        }
+
+        $query = $patient->appointments()->with(['doctor']);
 
         if ($request->has('status')) {
             $query->where('status', AppointmentStatus::fromLabel($request->status)->value);
@@ -76,18 +98,10 @@ class PatientAppointmentController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/patients/{patient}/appointments/{appointment}",
-     *     tags={"Patient Appointments"},
-     *     summary="Get specific appointment for a patient",
+     *     path="/api/appointments/{appointment}",
+     *     tags={"Appointments"},
+     *     summary="Get specific appointment for authenticated patient",
      *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\Parameter(
-     *         name="patient",
-     *         in="path",
-     *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
      *
      *     @OA\Parameter(
      *         name="appointment",
@@ -102,49 +116,97 @@ class PatientAppointmentController extends Controller
      *         description="Appointment retrieved successfully",
      *
      *         @OA\JsonContent(
-     *             allOf={
      *
-     *                 @OA\Schema(ref="#/components/schemas/SuccessResponse"),
-     *                 @OA\Schema(
+     *             @OA\Property(property="message", type="string", example="Appointment retrieved successfully"),
+     *             @OA\Property(property="statusCode", type="integer", example=200),
+     *             @OA\Property(property="status", type="string", example="OK"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
      *
-     *                     @OA\Property(property="data", ref="#/components/schemas/Appointment")
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="appointment_date", type="string", format="date-time", example="2025-12-01 10:00:00"),
+     *                 @OA\Property(property="status", type="string", example="pending"),
+     *                 @OA\Property(property="notes", type="string", example="Follow-up consultation"),
+     *                 @OA\Property(
+     *                     property="doctor",
+     *                     type="object",
+     *
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="Dr. John Smith"),
+     *                     @OA\Property(property="specialization", type="string", example="Cardiology"),
+     *                     @OA\Property(property="email", type="string", example="doctor@example.com"),
+     *                     @OA\Property(property="phone", type="string", example="+1234567890")
+     *                 ),
+     *                 @OA\Property(
+     *                     property="patient",
+     *                     type="object",
+     *
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="Jane Doe"),
+     *                     @OA\Property(property="email", type="string", example="jane@example.com"),
+     *                     @OA\Property(property="phone", type="string", example="+1234567890"),
+     *                     @OA\Property(property="date_of_birth", type="string", format="date", example="1990-01-15")
      *                 )
-     *             }
+     *             )
      *         )
      *     ),
      *
-     *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=404, description="Appointment not found")
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Unauthenticated"),
+     *             @OA\Property(property="statusCode", type="integer", example=401),
+     *             @OA\Property(property="status", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Appointment not found",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Appointment not found"),
+     *             @OA\Property(property="statusCode", type="integer", example=404),
+     *             @OA\Property(property="status", type="string", example="Not Found")
+     *         )
+     *     )
      * )
      */
-    public function show(Patient $patient, Appointment $appointment)
+    public function show(Appointment $appointment)
     {
-        if ($appointment->patient_id !== $patient->id) {
+        $patient = auth('api')->user()->patient;
+
+        if (!$patient || $appointment->patient_id !== $patient->id) {
             return $this->error('Appointment not found', null, Response::HTTP_NOT_FOUND);
         }
+
+        $appointment->load(['doctor', 'patient']);
 
         return $this->success(new AppointmentResource($appointment), 'Appointment retrieved successfully');
     }
 
     /**
      * @OA\Post(
-     *     path="/api/patients/{patient}/appointments",
-     *     tags={"Patient Appointments"},
-     *     summary="Create new appointment for a patient",
+     *     path="/api/appointments",
+     *     tags={"Appointments"},
+     *     summary="Create new appointment for authenticated patient",
      *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\Parameter(
-     *         name="patient",
-     *         in="path",
-     *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
      *
      *     @OA\RequestBody(
      *         required=true,
      *
-     *         @OA\JsonContent(ref="#/components/schemas/AppointmentRequest")
+     *         @OA\JsonContent(
+     *             required={"doctor_id","appointment_date"},
+     *
+     *             @OA\Property(property="doctor_id", type="integer", example=1),
+     *             @OA\Property(property="appointment_date", type="string", format="date-time", example="2025-12-01 10:00:00"),
+     *             @OA\Property(property="notes", type="string", example="Follow-up consultation for chest pain")
+     *         )
      *     ),
      *
      *     @OA\Response(
@@ -152,30 +214,65 @@ class PatientAppointmentController extends Controller
      *         description="Appointment created successfully",
      *
      *         @OA\JsonContent(
-     *             allOf={
      *
-     *                 @OA\Schema(
+     *             @OA\Property(property="message", type="string", example="Appointment created successfully"),
+     *             @OA\Property(property="statusCode", type="integer", example=201),
+     *             @OA\Property(property="status", type="string", example="Created"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
      *
-     *                     @OA\Property(property="message", type="string", example="Appointment created successfully"),
-     *                     @OA\Property(property="statusCode", type="integer", example=201),
-     *                     @OA\Property(property="status", type="string", example="Created")
-     *                 ),
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="appointment_date", type="string", format="date-time", example="2025-12-01 10:00:00"),
+     *                 @OA\Property(property="status", type="string", example="pending"),
+     *                 @OA\Property(property="notes", type="string", example="Follow-up consultation for chest pain"),
+     *                 @OA\Property(
+     *                     property="doctor",
+     *                     type="object",
      *
-     *                 @OA\Schema(
-     *
-     *                     @OA\Property(property="data", ref="#/components/schemas/Appointment")
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="Dr. John Smith"),
+     *                     @OA\Property(property="specialization", type="string", example="Cardiology"),
+     *                     @OA\Property(property="email", type="string", example="doctor@example.com"),
+     *                     @OA\Property(property="phone", type="string", example="+1234567890")
      *                 )
-     *             }
+     *             )
      *         )
      *     ),
      *
-     *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=404, description="Patient not found"),
-     *     @OA\Response(response=422, description="Validation error")
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Unauthenticated"),
+     *             @OA\Property(property="statusCode", type="integer", example=401),
+     *             @OA\Property(property="status", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error or time slot unavailable",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="This time slot is already booked"),
+     *             @OA\Property(property="statusCode", type="integer", example=422),
+     *             @OA\Property(property="status", type="string", example="Unprocessable Content")
+     *         )
+     *     )
      * )
      */
-    public function store(Patient $patient, StoreAppointmentRequest $request)
+    public function store(StoreAppointmentRequest $request)
     {
+        $patient = auth('api')->user()->patient;
+
+        if (!$patient) {
+            return $this->error('Patient profile not found', null, Response::HTTP_NOT_FOUND);
+        }
+
         $conflictingAppointment = Appointment::where('doctor_id', $request->doctor_id)
             ->where('appointment_date', $request->appointment_date)
             ->whereIn('status', [AppointmentStatus::PENDING->value, AppointmentStatus::CONFIRMED->value])
@@ -192,23 +289,141 @@ class PatientAppointmentController extends Controller
             'status' => AppointmentStatus::PENDING,
         ]);
 
+        $appointment->load('doctor');
+
         return $this->success(new AppointmentResource($appointment), 'Appointment created successfully', Response::HTTP_CREATED);
     }
 
     /**
-     * @OA\Delete(
-     *     path="/api/patients/{patient}/appointments/{appointment}",
-     *     tags={"Patient Appointments"},
-     *     summary="Delete appointment for a patient",
+     * @OA\Put(
+     *     path="/api/appointments/{appointment}/status",
+     *     tags={"Appointments"},
+     *     summary="Update appointment status",
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
-     *         name="patient",
+     *         name="appointment",
      *         in="path",
      *         required=true,
      *
      *         @OA\Schema(type="integer")
      *     ),
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *
+     *         @OA\JsonContent(
+     *             required={"status"},
+     *
+     *             @OA\Property(property="status", type="string", enum={"confirmed", "cancelled", "completed"}, example="confirmed")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Appointment status updated successfully",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Appointment status updated successfully"),
+     *             @OA\Property(property="statusCode", type="integer", example=200),
+     *             @OA\Property(property="status", type="string", example="OK"),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="appointment_date", type="string", format="date-time", example="2025-12-01 10:00:00"),
+     *                 @OA\Property(property="status", type="string", example="confirmed"),
+     *                 @OA\Property(property="notes", type="string", example="Follow-up consultation"),
+     *                 @OA\Property(property="updated_at", type="string", format="date-time", example="2025-11-27 18:45:30"),
+     *                 @OA\Property(
+     *                     property="doctor",
+     *                     type="object",
+     *
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="Dr. John Smith"),
+     *                     @OA\Property(property="specialization", type="string", example="Cardiology"),
+     *                     @OA\Property(property="email", type="string", example="doctor@example.com"),
+     *                     @OA\Property(property="phone", type="string", example="+1234567890")
+     *                 ),
+     *                 @OA\Property(
+     *                     property="patient",
+     *                     type="object",
+     *
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="Jane Doe"),
+     *                     @OA\Property(property="email", type="string", example="jane@example.com"),
+     *                     @OA\Property(property="phone", type="string", example="+1234567890"),
+     *                     @OA\Property(property="date_of_birth", type="string", format="date", example="1990-01-15")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Unauthenticated"),
+     *             @OA\Property(property="statusCode", type="integer", example=401),
+     *             @OA\Property(property="status", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Appointment not found",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Appointment not found"),
+     *             @OA\Property(property="statusCode", type="integer", example=404),
+     *             @OA\Property(property="status", type="string", example="Not Found")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="The status field is required."),
+     *             @OA\Property(property="statusCode", type="integer", example=422),
+     *             @OA\Property(property="status", type="string", example="Unprocessable Content"),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *
+     *                 @OA\Property(
+     *                     property="status",
+     *                     type="array",
+     *
+     *                     @OA\Items(type="string", example="The status field is required.")
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    public function updateStatus(UpdateAppointmentStatusRequest $request, Appointment $appointment)
+    {
+        $appointment->update(['status' => AppointmentStatus::fromLabel($request->status)]);
+
+        $appointment->load(['doctor', 'patient']);
+
+        return $this->success(new AppointmentResource($appointment), 'Appointment status updated successfully');
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/appointments/{appointment}",
+     *     tags={"Appointments"},
+     *     summary="Delete appointment for authenticated patient",
+     *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
      *         name="appointment",
@@ -230,13 +445,36 @@ class PatientAppointmentController extends Controller
      *         )
      *     ),
      *
-     *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=404, description="Appointment not found")
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Unauthenticated"),
+     *             @OA\Property(property="statusCode", type="integer", example=401),
+     *             @OA\Property(property="status", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Appointment not found",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Appointment not found"),
+     *             @OA\Property(property="statusCode", type="integer", example=404),
+     *             @OA\Property(property="status", type="string", example="Not Found")
+     *         )
+     *     )
      * )
      */
-    public function destroy(Patient $patient, Appointment $appointment)
+    public function destroy(Appointment $appointment)
     {
-        if ($appointment->patient_id !== $patient->id) {
+        $patient = auth('api')->user()->patient;
+
+        if (!$patient || $appointment->patient_id !== $patient->id) {
             return $this->error('Appointment not found', null, Response::HTTP_NOT_FOUND);
         }
 

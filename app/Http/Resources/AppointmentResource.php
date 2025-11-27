@@ -16,15 +16,31 @@ class AppointmentResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'patient_id' => $this->patient_id,
-            'doctor_id' => $this->doctor_id,
             'appointment_date' => $this->appointment_date,
             'status' => $this->status->label(),
             'notes' => $this->notes,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-            'patient' => $this->whenLoaded('patient'),
-            'doctor' => $this->whenLoaded('doctor'),
+            'updated_at' => $this->when(
+                $this->wasRecentlyCreated === false && $this->wasChanged('status'),
+                $this->updated_at
+            ),
+            'patient' => $this->whenLoaded('patient', function () {
+                return [
+                    'id' => $this->patient->id,
+                    'name' => $this->patient->name,
+                    'email' => $this->patient->email,
+                    'phone' => $this->patient->phone,
+                    'date_of_birth' => $this->patient->date_of_birth?->format('Y-m-d'),
+                ];
+            }),
+            'doctor' => $this->whenLoaded('doctor', function () {
+                return [
+                    'id' => $this->doctor->id,
+                    'name' => $this->doctor->name,
+                    'specialization' => $this->doctor->specialization,
+                    'email' => $this->doctor->email,
+                    'phone' => $this->doctor->phone,
+                ];
+            }),
         ];
     }
 }

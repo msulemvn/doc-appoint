@@ -26,8 +26,6 @@ class DoctorResource extends JsonResource
                 $request->has('date'),
                 fn() => $this->getAvailableSlots($request->date)
             ),
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
         ];
     }
 

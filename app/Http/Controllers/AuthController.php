@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RegisterPatientRequest;
+use App\Http\Requests\UpdateProfileRequest;
+use App\Models\Patient;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use OpenApi\Annotations as OA;
 
 class AuthController extends Controller implements HasMiddleware
@@ -12,7 +17,7 @@ class AuthController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('auth:api', except: ['login']),
+            new Middleware('auth:api', except: ['login', 'register']),
         ];
     }
 
@@ -54,8 +59,47 @@ class AuthController extends Controller implements HasMiddleware
      *         )
      *     ),
      *
-     *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=422, description="Validation Error")
+     *     @OA\Response(
+     *         response=401,
+     *         description="Invalid credentials",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Unauthorized"),
+     *             @OA\Property(property="statusCode", type="integer", example=401),
+     *             @OA\Property(property="status", type="string", example="Unauthorized"),
+     *             @OA\Property(property="data", type="null", example=null)
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="The email field is required."),
+     *             @OA\Property(property="statusCode", type="integer", example=422),
+     *             @OA\Property(property="status", type="string", example="Unprocessable Content"),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *
+     *                 @OA\Property(
+     *                     property="email",
+     *                     type="array",
+     *
+     *                     @OA\Items(type="string", example="The email field is required.")
+     *                 ),
+     *                 @OA\Property(
+     *                     property="password",
+     *                     type="array",
+     *
+     *                     @OA\Items(type="string", example="The password field is required.")
+     *                 )
+     *             )
+     *         )
+     *     )
      * )
      */
     public function login(Request $request)
@@ -76,31 +120,346 @@ class AuthController extends Controller implements HasMiddleware
 
     /**
      * @OA\Post(
-     *     path="/api/me",
+     *     path="/api/register",
      *     tags={"Authentication"},
-     *     summary="Get authenticated user",
-     *     description="Get the currently authenticated user's information",
+     *     summary="Register new patient",
+     *     description="Register a new patient account and return JWT token",
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *
+     *         @OA\JsonContent(
+     *             required={"name","email","password","password_confirmation"},
+     *
+     *             @OA\Property(property="name", type="string", example="John Doe"),
+     *             @OA\Property(property="email", type="string", format="email", example="john.doe@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="SecurePass123"),
+     *             @OA\Property(property="password_confirmation", type="string", format="password", example="SecurePass123"),
+     *             @OA\Property(property="phone", type="string", example="+1234567890"),
+     *             @OA\Property(property="date_of_birth", type="string", format="date", example="1990-05-15")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=201,
+     *         description="Registration successful",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Registration successful"),
+     *             @OA\Property(property="statusCode", type="integer", example=201),
+     *             @OA\Property(property="status", type="string", example="Created"),
+     *             @OA\Property(property="access_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGc..."),
+     *             @OA\Property(property="token_type", type="string", example="bearer"),
+     *             @OA\Property(
+     *                 property="user",
+     *                 type="object",
+     *
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="John Doe"),
+     *                 @OA\Property(property="email", type="string", example="john.doe@example.com"),
+     *                 @OA\Property(
+     *                     property="patient",
+     *                     type="object",
+     *
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="John Doe"),
+     *                     @OA\Property(property="email", type="string", example="john.doe@example.com"),
+     *                     @OA\Property(property="phone", type="string", example="+1234567890"),
+     *                     @OA\Property(property="date_of_birth", type="string", format="date", example="1990-05-15")
+     *                 )
+     *             ),
+     *             @OA\Property(property="expires_in", type="integer", example=86400)
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="The email has already been taken."),
+     *             @OA\Property(property="statusCode", type="integer", example=422),
+     *             @OA\Property(property="status", type="string", example="Unprocessable Content"),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *
+     *                 @OA\Property(
+     *                     property="email",
+     *                     type="array",
+     *
+     *                     @OA\Items(type="string", example="The email has already been taken.")
+     *                 ),
+     *                 @OA\Property(
+     *                     property="password",
+     *                     type="array",
+     *
+     *                     @OA\Items(type="string", example="The password must be at least 8 characters.")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error - Registration failed",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Registration failed"),
+     *             @OA\Property(property="statusCode", type="integer", example=500),
+     *             @OA\Property(property="status", type="string", example="Internal Server Error"),
+     *             @OA\Property(property="data", type="null", example=null)
+     *         )
+     *     )
+     * )
+     */
+    public function register(RegisterPatientRequest $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => $request->password,
+            ]);
+
+            $patient = Patient::create([
+                'user_id' => $user->id,
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'date_of_birth' => $request->date_of_birth,
+            ]);
+
+            DB::commit();
+
+            $token = auth('api')->login($user);
+
+            return $this->success([
+                'access_token' => $token,
+                'token_type' => 'bearer',
+                'user' => $user->load('patient'),
+                'expires_in' => auth('api')->factory()->getTTL() * 60,
+            ], 'Registration successful', 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return $this->error('Registration failed', null, 500);
+        }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/profile",
+     *     tags={"Authentication"},
+     *     summary="Get authenticated user profile",
+     *     description="Get the currently authenticated user's profile information",
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\Response(
      *         response=200,
-     *         description="User retrieved successfully",
+     *         description="Profile retrieved successfully",
      *
      *         @OA\JsonContent(
      *
-     *             @OA\Property(property="message", type="string", example="User retrieved successfully"),
+     *             @OA\Property(property="message", type="string", example="Profile retrieved successfully"),
      *             @OA\Property(property="statusCode", type="integer", example=200),
      *             @OA\Property(property="status", type="string", example="OK"),
-     *             @OA\Property(property="user", type="object")
+     *             @OA\Property(
+     *                 property="user",
+     *                 type="object",
+     *
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="John Doe"),
+     *                 @OA\Property(property="email", type="string", example="john.doe@example.com"),
+     *                 @OA\Property(
+     *                     property="patient",
+     *                     type="object",
+     *
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="John Doe"),
+     *                     @OA\Property(property="email", type="string", example="john.doe@example.com"),
+     *                     @OA\Property(property="phone", type="string", example="+1234567890"),
+     *                     @OA\Property(property="date_of_birth", type="string", format="date", example="1990-05-15")
+     *                 )
+     *             )
      *         )
      *     ),
      *
-     *     @OA\Response(response=401, description="Unauthorized")
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Unauthenticated"),
+     *             @OA\Property(property="statusCode", type="integer", example=401),
+     *             @OA\Property(property="status", type="string", example="Unauthorized")
+     *         )
+     *     )
      * )
      */
-    public function me()
+    public function getProfile()
     {
-        return $this->success(['user' => auth('api')->user()], 'User retrieved successfully');
+        $user = auth('api')->user()->load('patient');
+
+        return $this->success(['user' => $user], 'Profile retrieved successfully');
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/profile",
+     *     tags={"Authentication"},
+     *     summary="Update authenticated user profile",
+     *     description="Update the currently authenticated user's profile information",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\RequestBody(
+     *         required=true,
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="name", type="string", example="John Doe Updated"),
+     *             @OA\Property(property="email", type="string", format="email", example="john.updated@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="NewSecurePass123"),
+     *             @OA\Property(property="password_confirmation", type="string", format="password", example="NewSecurePass123"),
+     *             @OA\Property(property="phone", type="string", example="+1987654321"),
+     *             @OA\Property(property="date_of_birth", type="string", format="date", example="1990-05-15")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Profile updated successfully",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Profile updated successfully"),
+     *             @OA\Property(property="statusCode", type="integer", example=200),
+     *             @OA\Property(property="status", type="string", example="OK"),
+     *             @OA\Property(
+     *                 property="user",
+     *                 type="object",
+     *
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="John Doe Updated"),
+     *                 @OA\Property(property="email", type="string", example="john.updated@example.com"),
+     *                 @OA\Property(
+     *                     property="patient",
+     *                     type="object",
+     *
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="name", type="string", example="John Doe Updated"),
+     *                     @OA\Property(property="email", type="string", example="john.updated@example.com"),
+     *                     @OA\Property(property="phone", type="string", example="+1987654321"),
+     *                     @OA\Property(property="date_of_birth", type="string", format="date", example="1990-05-15")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Unauthenticated"),
+     *             @OA\Property(property="statusCode", type="integer", example=401),
+     *             @OA\Property(property="status", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="The email has already been taken."),
+     *             @OA\Property(property="statusCode", type="integer", example=422),
+     *             @OA\Property(property="status", type="string", example="Unprocessable Content"),
+     *             @OA\Property(
+     *                 property="errors",
+     *                 type="object",
+     *
+     *                 @OA\Property(
+     *                     property="email",
+     *                     type="array",
+     *
+     *                     @OA\Items(type="string", example="The email has already been taken.")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error - Profile update failed",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Profile update failed"),
+     *             @OA\Property(property="statusCode", type="integer", example=500),
+     *             @OA\Property(property="status", type="string", example="Internal Server Error"),
+     *             @OA\Property(property="data", type="null", example=null)
+     *         )
+     *     )
+     * )
+     */
+    public function updateProfile(UpdateProfileRequest $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $user = auth('api')->user();
+            $patient = $user->patient;
+
+            $userData = [];
+            if ($request->has('name')) {
+                $userData['name'] = $request->name;
+            }
+            if ($request->has('email')) {
+                $userData['email'] = $request->email;
+            }
+            if ($request->has('password')) {
+                $userData['password'] = $request->password;
+            }
+
+            if (!empty($userData)) {
+                $user->update($userData);
+            }
+
+            $patientData = [];
+            if ($request->has('name')) {
+                $patientData['name'] = $request->name;
+            }
+            if ($request->has('email')) {
+                $patientData['email'] = $request->email;
+            }
+            if ($request->has('phone')) {
+                $patientData['phone'] = $request->phone;
+            }
+            if ($request->has('date_of_birth')) {
+                $patientData['date_of_birth'] = $request->date_of_birth;
+            }
+
+            if (!empty($patientData) && $patient) {
+                $patient->update($patientData);
+            }
+
+            DB::commit();
+
+            return $this->success(['user' => $user->fresh()->load('patient')], 'Profile updated successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return $this->error('Profile update failed', null, 500);
+        }
     }
 
     /**
@@ -119,11 +478,22 @@ class AuthController extends Controller implements HasMiddleware
      *
      *             @OA\Property(property="message", type="string", example="Successfully logged out"),
      *             @OA\Property(property="statusCode", type="integer", example=200),
-     *             @OA\Property(property="status", type="string", example="OK")
+     *             @OA\Property(property="status", type="string", example="OK"),
+     *             @OA\Property(property="data", type="array", @OA\Items())
      *         )
      *     ),
      *
-     *     @OA\Response(response=401, description="Unauthorized")
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized - Invalid or expired token",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Unauthenticated"),
+     *             @OA\Property(property="statusCode", type="integer", example=401),
+     *             @OA\Property(property="status", type="string", example="Unauthorized")
+     *         )
+     *     )
      * )
      */
     public function logout()
@@ -161,7 +531,17 @@ class AuthController extends Controller implements HasMiddleware
      *         )
      *     ),
      *
-     *     @OA\Response(response=401, description="Unauthorized")
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized - Invalid or expired token",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Unauthenticated"),
+     *             @OA\Property(property="statusCode", type="integer", example=401),
+     *             @OA\Property(property="status", type="string", example="Unauthorized")
+     *         )
+     *     )
      * )
      */
     public function refresh()

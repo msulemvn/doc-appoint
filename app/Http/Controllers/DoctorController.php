@@ -64,9 +64,7 @@ class DoctorController extends Controller
      *                                 description="Available time slots (only included when date parameter is provided)",
      *
      *                                 @OA\Items(type="string", example="09:00")
-     *                             ),
-     *                             @OA\Property(property="created_at", type="string", format="date-time"),
-     *                             @OA\Property(property="updated_at", type="string", format="date-time")
+     *                             )
      *                         )
      *                     )
      *                 )
@@ -144,16 +142,24 @@ class DoctorController extends Controller
      *                             description="Available time slots (only included when date parameter is provided)",
      *
      *                             @OA\Items(type="string", example="09:00")
-     *                         ),
-     *                         @OA\Property(property="created_at", type="string", format="date-time"),
-     *                         @OA\Property(property="updated_at", type="string", format="date-time")
+     *                         )
      *                     )
      *                 )
      *             }
      *         )
      *     ),
      *
-     *     @OA\Response(response=404, description="Doctor not found")
+     *     @OA\Response(
+     *         response=404,
+     *         description="Doctor not found",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\Doctor]"),
+     *             @OA\Property(property="statusCode", type="integer", example=404),
+     *             @OA\Property(property="status", type="string", example="Not Found")
+     *         )
+     *     )
      * )
      */
     public function show(Doctor $doctor)
@@ -213,8 +219,29 @@ class DoctorController extends Controller
      *         )
      *     ),
      *
-     *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=404, description="Doctor not found")
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthorized",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="Unauthenticated"),
+     *             @OA\Property(property="statusCode", type="integer", example=401),
+     *             @OA\Property(property="status", type="string", example="Unauthorized")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Doctor not found",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="No query results for model [App\\Models\\Doctor]"),
+     *             @OA\Property(property="statusCode", type="integer", example=404),
+     *             @OA\Property(property="status", type="string", example="Not Found")
+     *         )
+     *     )
      * )
      */
     public function appointments(Doctor $doctor, Request $request)

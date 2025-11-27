@@ -31,9 +31,7 @@ use OpenApi\Annotations as OA;
  *     @OA\Property(property="name", type="string", example="Dr. John Smith"),
  *     @OA\Property(property="specialization", type="string", example="Cardiology"),
  *     @OA\Property(property="email", type="string", format="email", example="doctor@example.com"),
- *     @OA\Property(property="phone", type="string", example="+1234567890"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
+ *     @OA\Property(property="phone", type="string", example="+1234567890")
  * )
  *
  * @OA\Schema(
@@ -45,24 +43,20 @@ use OpenApi\Annotations as OA;
  *     @OA\Property(property="name", type="string", example="Jane Doe"),
  *     @OA\Property(property="email", type="string", format="email", example="patient@example.com"),
  *     @OA\Property(property="phone", type="string", example="+1234567890"),
- *     @OA\Property(property="date_of_birth", type="string", format="date", example="1990-01-15"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
+ *     @OA\Property(property="date_of_birth", type="string", format="date", example="1990-01-15")
  * )
  *
  * @OA\Schema(
  *     schema="Appointment",
  *     type="object",
- *     required={"id", "patient_id", "doctor_id", "appointment_date", "status"},
+ *     required={"id", "appointment_date", "status"},
+ *     description="Appointment object. updated_at is only included when status changes.",
  *
  *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="patient_id", type="integer", example=1),
- *     @OA\Property(property="doctor_id", type="integer", example=1),
  *     @OA\Property(property="appointment_date", type="string", format="date-time", example="2025-12-01 10:00:00"),
  *     @OA\Property(property="status", type="string", enum={"pending", "confirmed", "cancelled", "completed"}, example="pending"),
  *     @OA\Property(property="notes", type="string", example="Follow-up consultation"),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time", example="2025-11-27 18:45:30", description="Only present when status has been changed"),
  *     @OA\Property(property="patient", ref="#/components/schemas/Patient"),
  *     @OA\Property(property="doctor", ref="#/components/schemas/Doctor")
  * )
