@@ -1683,12 +1683,14 @@
                 "tags": [
                     "Appointments"
                 ],
-                "summary": "Update appointment status",
+                "summary": "Update appointment status (role-based permissions)",
+                "description": "Updates appointment status based on user role. Patients can only cancel appointments. Doctors can confirm, cancel, or complete appointments. State transitions are validated: pending→confirmed/cancelled, confirmed→completed/cancelled. Completed and cancelled are final states.",
                 "operationId": "b714c43512d710a49f3b9891e1a11c35",
                 "parameters": [
                     {
                         "name": "appointment",
                         "in": "path",
+                        "description": "Appointment ID",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -1696,6 +1698,7 @@
                     }
                 ],
                 "requestBody": {
+                    "description": "Status to update. Patients: only 'cancelled' allowed. Doctors: 'confirmed', 'cancelled', or 'completed' allowed based on current state.",
                     "required": true,
                     "content": {
                         "application/json": {
@@ -1705,6 +1708,7 @@
                                 ],
                                 "properties": {
                                     "status": {
+                                        "description": "New status. For patients: 'cancelled' only. For doctors: 'confirmed' (from pending), 'completed' (from confirmed), or 'cancelled' (from pending/confirmed)",
                                         "type": "string",
                                         "enum": [
                                             "confirmed",
@@ -1846,6 +1850,30 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "Forbidden - User is not authorized to update this appointment",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "This action is unauthorized"
+                                        },
+                                        "statusCode": {
+                                            "type": "integer",
+                                            "example": 403
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "example": "Forbidden"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "Appointment not found",
                         "content": {
@@ -1871,14 +1899,14 @@
                         }
                     },
                     "422": {
-                        "description": "Validation error",
+                        "description": "Validation error or invalid state transition",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "example": "The status field is required."
+                                            "example": "Cannot change appointment status from 'completed' to 'confirmed'"
                                         },
                                         "statusCode": {
                                             "type": "integer",
@@ -1889,12 +1917,13 @@
                                             "example": "Unprocessable Content"
                                         },
                                         "errors": {
+                                            "description": "Validation errors (only present for validation failures, not state transition errors)",
                                             "properties": {
                                                 "status": {
                                                     "type": "array",
                                                     "items": {
                                                         "type": "string",
-                                                        "example": "The status field is required."
+                                                        "example": "The selected status is invalid."
                                                     }
                                                 }
                                             },

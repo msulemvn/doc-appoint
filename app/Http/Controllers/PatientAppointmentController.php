@@ -338,24 +338,33 @@ class PatientAppointmentController extends Controller
      * @OA\Put(
      *     path="/api/appointments/{appointment}/status",
      *     tags={"Appointments"},
-     *     summary="Update appointment status",
+     *     summary="Update appointment status (role-based permissions)",
+     *     description="Updates appointment status based on user role. Patients can only cancel appointments. Doctors can confirm, cancel, or complete appointments. State transitions are validated: pending→confirmed/cancelled, confirmed→completed/cancelled. Completed and cancelled are final states.",
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
      *         name="appointment",
      *         in="path",
      *         required=true,
+     *         description="Appointment ID",
      *
      *         @OA\Schema(type="integer")
      *     ),
      *
      *     @OA\RequestBody(
      *         required=true,
+     *         description="Status to update. Patients: only 'cancelled' allowed. Doctors: 'confirmed', 'cancelled', or 'completed' allowed based on current state.",
      *
      *         @OA\JsonContent(
      *             required={"status"},
      *
-     *             @OA\Property(property="status", type="string", enum={"confirmed", "cancelled", "completed"}, example="confirmed")
+     *             @OA\Property(
+     *                 property="status",
+     *                 type="string",
+     *                 description="New status. For patients: 'cancelled' only. For doctors: 'confirmed' (from pending), 'completed' (from confirmed), or 'cancelled' (from pending/confirmed)",
+     *                 enum={"confirmed", "cancelled", "completed"},
+     *                 example="confirmed"
+     *             )
      *         )
      *     ),
      *
@@ -411,6 +420,18 @@ class PatientAppointmentController extends Controller
      *     ),
      *
      *     @OA\Response(
+     *         response=403,
+     *         description="Forbidden - User is not authorized to update this appointment",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="message", type="string", example="This action is unauthorized"),
+     *             @OA\Property(property="statusCode", type="integer", example=403),
+     *             @OA\Property(property="status", type="string", example="Forbidden")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
      *         response=404,
      *         description="Appointment not found",
      *
@@ -424,21 +445,22 @@ class PatientAppointmentController extends Controller
      *
      *     @OA\Response(
      *         response=422,
-     *         description="Validation error",
+     *         description="Validation error or invalid state transition",
      *
      *         @OA\JsonContent(
      *
-     *             @OA\Property(property="message", type="string", example="The status field is required."),
+     *             @OA\Property(property="message", type="string", example="Cannot change appointment status from 'completed' to 'confirmed'"),
      *             @OA\Property(property="statusCode", type="integer", example=422),
      *             @OA\Property(property="status", type="string", example="Unprocessable Content"),
      *             @OA\Property(
      *                 property="errors",
      *                 type="object",
+     *                 description="Validation errors (only present for validation failures, not state transition errors)",
      *                 @OA\Property(
      *                     property="status",
      *                     type="array",
      *
-     *                     @OA\Items(type="string", example="The status field is required.")
+     *                     @OA\Items(type="string", example="The selected status is invalid.")
      *                 )
      *             )
      *         )
@@ -449,7 +471,28 @@ class PatientAppointmentController extends Controller
     {
         $this->authorize('update', $appointment);
 
-        $appointment->update(['status' => AppointmentStatus::fromLabel($request->status)]);
+        $newStatus = AppointmentStatus::fromLabel($request->status);
+        $currentStatus = $appointment->status;
+
+        $validTransitions = [
+            AppointmentStatus::PENDING->value => [AppointmentStatus::CONFIRMED->value, AppointmentStatus::CANCELLED->value],
+            AppointmentStatus::CONFIRMED->value => [AppointmentStatus::COMPLETED->value, AppointmentStatus::CANCELLED->value],
+            AppointmentStatus::COMPLETED->value => [],
+            AppointmentStatus::CANCELLED->value => [],
+        ];
+
+        if (! in_array($newStatus->value, $validTransitions[$currentStatus->value] ?? [])) {
+            $currentLabel = $currentStatus->label();
+            $newLabel = $newStatus->label();
+
+            return $this->error(
+                "Cannot change appointment status from '{$currentLabel}' to '{$newLabel}'",
+                null,
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        $appointment->update(['status' => $newStatus]);
 
         $appointment->load(['doctor', 'patient']);
 
