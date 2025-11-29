@@ -413,6 +413,8 @@ class AuthController extends Controller implements HasMiddleware
             DB::beginTransaction();
 
             $user = auth('api')->user();
+            $this->authorize('update', $user);
+
             $patient = $user->patient;
 
             $userData = [];

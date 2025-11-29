@@ -100,6 +100,8 @@ class PatientAppointmentController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Appointment::class);
+
         $user = auth('api')->user();
 
         if ($user->isPatient()) {
@@ -221,11 +223,7 @@ class PatientAppointmentController extends Controller
      */
     public function show(Appointment $appointment)
     {
-        $patient = auth('api')->user()->patient;
-
-        if (! $patient || $appointment->patient_id !== $patient->id) {
-            return $this->error('Appointment not found', null, Response::HTTP_NOT_FOUND);
-        }
+        $this->authorize('view', $appointment);
 
         $appointment->load(['doctor', 'patient']);
 
@@ -307,6 +305,8 @@ class PatientAppointmentController extends Controller
      */
     public function store(StoreAppointmentRequest $request)
     {
+        $this->authorize('create', Appointment::class);
+
         $patient = auth('api')->user()->patient;
 
         if (! $patient) {
@@ -447,6 +447,8 @@ class PatientAppointmentController extends Controller
      */
     public function updateStatus(UpdateAppointmentStatusRequest $request, Appointment $appointment)
     {
+        $this->authorize('update', $appointment);
+
         $appointment->update(['status' => AppointmentStatus::fromLabel($request->status)]);
 
         $appointment->load(['doctor', 'patient']);
@@ -508,11 +510,7 @@ class PatientAppointmentController extends Controller
      */
     public function destroy(Appointment $appointment)
     {
-        $patient = auth('api')->user()->patient;
-
-        if (! $patient || $appointment->patient_id !== $patient->id) {
-            return $this->error('Appointment not found', null, Response::HTTP_NOT_FOUND);
-        }
+        $this->authorize('delete', $appointment);
 
         $appointment->delete();
 

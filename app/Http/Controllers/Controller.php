@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Traits\ApiResponseTrait;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use OpenApi\Annotations as OA;
 
 /**
@@ -123,4 +124,5 @@ use OpenApi\Annotations as OA;
 abstract class Controller
 {
     use ApiResponseTrait;
+    use AuthorizesRequests;
 }
