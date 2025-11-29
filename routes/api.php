@@ -19,7 +19,6 @@ Route::get('doctors/available', [DoctorController::class, 'available']);
 Route::get('doctors/{doctor}', [DoctorController::class, 'show']);
 
 Route::middleware('auth:api')->group(function () {
-    Route::get('doctors/{doctor}/appointments', [DoctorController::class, 'appointments']);
     Route::get('appointments', [PatientAppointmentController::class, 'index']);
     Route::post('appointments', [PatientAppointmentController::class, 'store']);
     Route::get('appointments/{appointment}', [PatientAppointmentController::class, 'show']);
