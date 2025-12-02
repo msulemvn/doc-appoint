@@ -1,59 +1,215 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Doctor Appointment API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+REST API for managing doctor appointments with JWT authentication, role-based access control, and automated API documentation.
 
-## About Laravel
+## Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Laravel 12
+- PHP 8.2+
+- MySQL
+- JWT Authentication (tymon/jwt-auth)
+- Swagger/OpenAPI (L5-Swagger)
+- Vite + Tailwind CSS 4
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- User authentication (register, login, logout, token refresh)
+- Role-based access (doctor/patient)
+- Profile management
+- Doctor listings with availability filtering
+- Appointment booking and management
+- Status transitions with authorization policies
+- Form Request validation with integrated policy checks
+- Automated API documentation with Swagger UI
 
-## Learning Laravel
+## Requirements
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- PHP 8.2 or higher
+- Composer
+- Node.js & npm
+- MySQL 5.7+ or 8.0+
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Installation
 
-## Laravel Sponsors
+```bash
+# Clone repository
+git clone https://github.com/msulemvn/doc-appoint-api.git
+cd doc-appoint-api
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Install dependencies and setup
+composer setup
+```
 
-### Premium Partners
+The `composer setup` command will:
+- Install PHP dependencies
+- Create `.env` file from `.env.example`
+- Generate application key
+- Run database migrations
+- Install frontend dependencies
+- Build assets
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Configuration
 
-## Contributing
+### Database Setup
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Create a MySQL database:
+```sql
+CREATE DATABASE doc_appoint CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
-## Code of Conduct
+Update `.env` with your database credentials:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=doc_appoint
+DB_USERNAME=root
+DB_PASSWORD=your_password
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### JWT Configuration
 
-## Security Vulnerabilities
+Generate JWT secret key:
+```bash
+php artisan jwt:secret
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Swagger Configuration (Optional)
+
+Update `.env` for API documentation:
+```env
+L5_SWAGGER_GENERATE_ALWAYS=true
+L5_SWAGGER_CONST_HOST=http://127.0.0.1:8000
+```
+
+## Development
+
+Start all services (API server, queue worker, logs, Vite):
+```bash
+composer dev
+```
+
+This runs concurrently:
+- API server on `http://127.0.0.1:8000`
+- Queue worker
+- Log viewer
+- Vite dev server
+
+Or run services individually:
+```bash
+php artisan serve
+php artisan queue:listen
+npm run dev
+```
+
+## Testing
+
+Run tests:
+```bash
+composer test
+```
+
+Run specific test suite:
+```bash
+php artisan test --filter=AuthTest
+```
+
+## API Documentation
+
+Interactive API documentation is available at:
+```
+http://127.0.0.1:8000/api/documentation
+```
+
+## API Endpoints
+
+### Authentication
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/register` | Register new user | No |
+| POST | `/api/login` | User login | No |
+| POST | `/api/logout` | User logout | Yes |
+| POST | `/api/refresh` | Refresh JWT token | Yes |
+| GET | `/api/profile` | Get user profile | Yes |
+| PUT | `/api/profile` | Update user profile | Yes |
+
+### Doctors
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/doctors/available` | List available doctors | No |
+| GET | `/api/doctors/{id}` | Get doctor details | No |
+
+### Appointments
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/appointments` | List user appointments | Yes |
+| POST | `/api/appointments` | Create appointment | Yes |
+| GET | `/api/appointments/{id}` | Get appointment details | Yes |
+| PUT | `/api/appointments/{id}/status` | Update appointment status | Yes |
+
+## Architecture
+
+### Design Patterns
+
+- **Action Pattern**: Business logic encapsulated in single-responsibility action classes
+- **Form Requests**: Validation with integrated policy authorization
+- **Policy-Based Authorization**: Fine-grained access control for resources
+- **String-Backed Enums**: Type-safe status and role definitions
+- **API Resources**: Consistent JSON response formatting
+
+### Project Structure
+
+```
+app/
+├── Actions/          # Business logic actions
+├── Http/
+│   ├── Controllers/  # API controllers
+│   ├── Requests/     # Form request classes
+│   └── Resources/    # API response transformers
+├── Models/           # Eloquent models
+├── Policies/         # Authorization policies
+└── Enums/            # Enums for status/roles
+```
+
+## Code Quality
+
+### Code Style
+```bash
+# Format code with Laravel Pint
+./vendor/bin/pint
+```
+
+### Static Analysis
+```bash
+# Run PHPStan
+./vendor/bin/phpstan analyse
+```
+
+### Refactoring
+```bash
+# Run Rector
+./vendor/bin/rector process
+```
+
+## Deployment
+
+### Build for Production
+```bash
+composer install --no-dev --optimize-autoloader
+npm run build
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+### Environment Variables
+Ensure these are set in production:
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://your-domain.com
+```
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT
