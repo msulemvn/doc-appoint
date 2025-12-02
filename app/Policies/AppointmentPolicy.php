@@ -55,15 +55,4 @@ class AppointmentPolicy
         return false;
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, Appointment $appointment): bool
-    {
-        if ($user->isPatient()) {
-            return $appointment->patient_id === $user->patient?->id;
-        }
-
-        return false;
-    }
 }

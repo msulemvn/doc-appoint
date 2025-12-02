@@ -23,5 +23,4 @@ Route::middleware('auth:api')->group(function () {
     Route::post('appointments', [PatientAppointmentController::class, 'store']);
     Route::get('appointments/{appointment}', [PatientAppointmentController::class, 'show']);
     Route::put('appointments/{appointment}/status', [PatientAppointmentController::class, 'updateStatus']);
-    Route::delete('appointments/{appointment}', [PatientAppointmentController::class, 'destroy']);
 });

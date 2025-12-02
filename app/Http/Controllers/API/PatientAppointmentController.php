@@ -5,7 +5,6 @@ namespace App\Http\Controllers\API;
 use App\Actions\Appointment\CreateAppointmentAction;
 use App\Actions\Appointment\UpdateAppointmentStatusAction;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\DeleteAppointmentRequest;
 use App\Http\Requests\GetAppointmentsRequest;
 use App\Http\Requests\StoreAppointmentRequest;
 use App\Http\Requests\UpdateAppointmentStatusRequest;
@@ -59,14 +58,17 @@ class PatientAppointmentController extends Controller
      *                         property="doctor",
      *                         type="object",
      *                         description="Only present for patient users",
+     *                         @OA\Property(property="id", type="integer", example=1),
      *                         @OA\Property(property="name", type="string", example="Dr. John Smith"),
      *                         @OA\Property(property="specialization", type="string", example="Cardiology"),
+     *                         @OA\Property(property="email", type="string", example="doctor@example.com"),
      *                         @OA\Property(property="phone", type="string", example="+1234567890")
      *                     ),
      *                     @OA\Property(
      *                         property="patient",
      *                         type="object",
      *                         description="Only present for doctor users",
+     *                         @OA\Property(property="id", type="integer", example=1),
      *                         @OA\Property(property="name", type="string", example="Jane Doe"),
      *                         @OA\Property(property="email", type="string", example="jane@example.com"),
      *                         @OA\Property(property="phone", type="string", example="+1234567890"),
@@ -467,62 +469,4 @@ class PatientAppointmentController extends Controller
         );
     }
 
-    /**
-     * @OA\Delete(
-     *     path="/api/appointments/{appointment}",
-     *     tags={"Appointments"},
-     *     summary="Delete appointment for authenticated patient",
-     *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\Parameter(
-     *         name="appointment",
-     *         in="path",
-     *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=200,
-     *         description="Appointment deleted successfully",
-     *
-     *         @OA\JsonContent(
-     *
-     *             @OA\Property(property="message", type="string", example="Appointment deleted successfully"),
-     *             @OA\Property(property="statusCode", type="integer", example=200),
-     *             @OA\Property(property="status", type="string", example="OK")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *
-     *         @OA\JsonContent(
-     *
-     *             @OA\Property(property="message", type="string", example="Unauthenticated"),
-     *             @OA\Property(property="statusCode", type="integer", example=401),
-     *             @OA\Property(property="status", type="string", example="Unauthorized")
-     *         )
-     *     ),
-     *
-     *     @OA\Response(
-     *         response=404,
-     *         description="Appointment not found",
-     *
-     *         @OA\JsonContent(
-     *
-     *             @OA\Property(property="message", type="string", example="Appointment not found"),
-     *             @OA\Property(property="statusCode", type="integer", example=404),
-     *             @OA\Property(property="status", type="string", example="Not Found")
-     *         )
-     *     )
-     * )
-     */
-    public function destroy(DeleteAppointmentRequest $request, Appointment $appointment)
-    {
-        $appointment->delete();
-
-        return $this->success([], 'Appointment deleted successfully');
-    }
 }

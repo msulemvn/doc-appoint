@@ -1145,6 +1145,10 @@
                                                     "doctor": {
                                                         "description": "Only present for patient users",
                                                         "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
                                                             "name": {
                                                                 "type": "string",
                                                                 "example": "Dr. John Smith"
@@ -1152,6 +1156,10 @@
                                                             "specialization": {
                                                                 "type": "string",
                                                                 "example": "Cardiology"
+                                                            },
+                                                            "email": {
+                                                                "type": "string",
+                                                                "example": "doctor@example.com"
                                                             },
                                                             "phone": {
                                                                 "type": "string",
@@ -1163,6 +1171,10 @@
                                                     "patient": {
                                                         "description": "Only present for doctor users",
                                                         "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
                                                             "name": {
                                                                 "type": "string",
                                                                 "example": "Jane Doe"
@@ -1519,102 +1531,6 @@
                                                 }
                                             },
                                             "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated"
-                                        },
-                                        "statusCode": {
-                                            "type": "integer",
-                                            "example": 401
-                                        },
-                                        "status": {
-                                            "type": "string",
-                                            "example": "Unauthorized"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Appointment not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Appointment not found"
-                                        },
-                                        "statusCode": {
-                                            "type": "integer",
-                                            "example": 404
-                                        },
-                                        "status": {
-                                            "type": "string",
-                                            "example": "Not Found"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            },
-            "delete": {
-                "tags": [
-                    "Appointments"
-                ],
-                "summary": "Delete appointment for authenticated patient",
-                "operationId": "e0f7409de67cae3abb27a1f90a83cb56",
-                "parameters": [
-                    {
-                        "name": "appointment",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Appointment deleted successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Appointment deleted successfully"
-                                        },
-                                        "statusCode": {
-                                            "type": "integer",
-                                            "example": 200
-                                        },
-                                        "status": {
-                                            "type": "string",
-                                            "example": "OK"
                                         }
                                     },
                                     "type": "object"
