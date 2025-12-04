@@ -97,6 +97,10 @@ class DoctorSeeder extends Seeder
                 'user_id' => $user->id,
                 'specialization' => $doctorData['specialization'],
                 'phone' => $doctorData['phone'],
+                'bio' => 'Experienced specialist',
+                'years_of_experience' => fake()->numberBetween(5, 20),
+                'consultation_fee' => fake()->numberBetween(50, 200),
+                'license_number' => fake()->bothify('MD#####'),
             ]);
         }
     }
